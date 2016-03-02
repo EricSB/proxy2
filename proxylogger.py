@@ -4,6 +4,7 @@
 
 import time
 import sys
+import traceback
 
 
 class ProxyLogger:
@@ -90,3 +91,11 @@ class ProxyLogger:
 
     def err(self, txt, **kwargs):
         ProxyLogger.out(txt, self.options['log'], 'error', **kwargs)
+
+    @staticmethod
+    def fatal_error(txt, e):
+        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], 'Fatal error has occured:\n\t%s' % txt)
+        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '\t%s\nTraceback:' % e)
+        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '-'*30)
+        traceback.print_exc()
+        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '-'*30)

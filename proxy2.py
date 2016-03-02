@@ -34,7 +34,6 @@ import threading
 import gzip, zlib
 import json, re
 import optionsparser
-import traceback
 from subprocess import Popen, PIPE
 from proxylogger import ProxyLogger
 from pluginsloader import PluginsLoader
@@ -395,9 +394,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 handler = getattr(instance, 'request_handler')
                 logger.dbg("Calling `request_handler' from plugin %s" % plugin_name)
                 req_body = handler(req, req_body)
+            
             except AttributeError as e:
-                logger.dbg('Plugin "%s" does not implement `request_handler\'. Error: "%s"' 
-                            % (plugin_name, e))
+                ProxyLogger.fatal_error('Plugin "%s" does not implement `request_handler\'.'
+                            % plugin_name, e)
 
         logger.dbg('Finished calling request_handlers.')
         return req_body
@@ -413,9 +413,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 handler = getattr(instance, 'response_handler')
                 logger.dbg("Calling `response_handler' from plugin %s" % plugin_name)
                 res_body_current = handler(req, req_body, res, res_body_current)
+            
             except AttributeError as e:
-                logger.dbg('Plugin "%s" does not implement `response_handler\'. Error: "%s"'
-                            % (plugin_name, e))
+                ProxyLogger.fatal_error('Plugin "%s" does not implement `response_handler\'.'
+                            % plugin_name, e)
 
         logger.dbg('Finished calling response_handlers.')
         return res_body_current
@@ -464,14 +465,10 @@ def main():
         httpd.serve_forever()
 
     except KeyboardInterrupt:
-        logger.info('\nProxy serving interrupted by user.', noprefix=True)
+        logger.info('\nProxy serving interrupted.', noprefix=True)
 
     except Exception as e:
-        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], 'Fatal error has occured.')
-        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '\t%s\nTraceback:' % e)
-        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '-'*30)
-        traceback.print_exc()
-        print ProxyLogger.with_color(ProxyLogger.colors_map['red'], '-'*30)
+        ProxyLogger.fatal_error('Exception', e)
 
     finally:
         cleanup()

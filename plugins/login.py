@@ -9,16 +9,17 @@
 #
 
 import re
+import ssl
 import urlparse
 import httplib
 import cookielib
-import urllib
+import urllib, urllib2
 import mechanize
 
 VERSION = '0.1'
 AUTHOR = 'mgeeky'
 SCRIPT = 'Plugin[LOGIN]'
-DEFAULT_VALID_PATTERN = 'hello|bonjour|welcome|wita|logout|logoff|signoff|signout|exit|quit|wylog|byebye'
+DEFAULT_VALID_PATTERN = 'logout|logoff|signoff|signout|exit|quit|wyloguj|wylogowanie|byebye'
 
 
 class ProxyHandler:
@@ -109,6 +110,17 @@ class ProxyHandler:
             d[s[:pos].strip()] = s[pos+1:].strip()
         return d
 
+    def issue_request(self, url, hdrs=None):
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookiejar))
+        urllib2.install_opener(opener)
+        if hdrs:
+            opener.addheaders = hdrs.items()
+
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+        return urllib2.urlopen(url, context=ctx)
 
     def check_is_valid(self, conn, req):
 
@@ -124,8 +136,11 @@ class ProxyHandler:
         # Injecting session cookies
         hdrs.update({'Cookie':cook})
 
-        conn[0].request('GET', verify, '', hdrs)
-        res_body = conn[0].getresponse().read()
+        response = self.issue_request(verify, hdrs)
+        res_body = response.read()
+
+        #conn[0].request('GET', verify, '', hdrs)
+        #res_body = conn[0].getresponse().read()
 
         def check(r):
             self.logger.dbg(SCRIPT + ": checking regex: '%s'" % r)
@@ -229,9 +244,7 @@ class ProxyHandler:
         self.logger.dbg(SCRIPT + ': Params to issue: %s' % str(para))
         
         # Step 3: Issuing GET for authentication page containing desired form.
-        opener = mechanize.build_opener(mechanize.HTTPCookieProcessor(self.cookiejar))
-        opener.addheaders = self.get_headers(req).items()
-        response = opener.open(login)
+        response = self.issue_request(login, self.get_headers(req))
         hdrs2 = response.info().headers
         forms = mechanize.ParseResponse(response, backwards_compat=False)
 
@@ -240,7 +253,7 @@ class ProxyHandler:
 
         # Step 4: Finding and filling proper form with specified parameters.
         for f in forms:
-            self.logger.dbg(SCRIPT + ": Parsing the form:\n%s" % f)
+            #self.logger.dbg(SCRIPT + ": Parsing the form:\n%s" % f)
             try:
                 for k, v in para.iteritems():
                     f.find_control(k)
@@ -256,8 +269,10 @@ class ProxyHandler:
                 found = True
                 form = f
                 self.logger.dbg(SCRIPT + ": form found.")
+                break
             except Exception as e:
-                self.logger.dbg(SCRIPT + ": this is not the form we're looking for. Err: %s" % e)
+                self.logger.dbg(SCRIPT + ": this is not the form we're looking for.")
+                self.logger.dbg(SCRIPT + ":\tError: '%s'" % e, color=self.logger.colors_map['red'])
                 continue
 
         if found:
@@ -267,7 +282,7 @@ class ProxyHandler:
             self.logger.dbg(SCRIPT + ": Submitting the form:")
             self.logger.dbg("\t'%s'" % str(request.get_data()))
 
-            resp = opener.open(request)
+            resp = self.issue_request(request)
 
             return True
 
