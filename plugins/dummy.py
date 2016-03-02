@@ -1,7 +1,13 @@
 #!/usr/bin/python
 
-# Dummy plugin presenting necessary structure of 
-# a proxy2 plugin to be loaded correctly.
+#
+# Dummy plugin presenting necessary structure of a proxy2 plugin 
+# to be loaded correctly. Every plugin will be set with a member
+# called `proxy' referred to as self.proxy which will be holding
+# instance of the caller's (ProxyRequestHandler from proxy2.py).
+# Thanks to this object it will be feasible to leverage for instance
+# self.proxy.tls list of HTTP/HTTPS connections.
+#
 
 class ProxyHandler:
 
@@ -25,6 +31,7 @@ class ProxyHandler:
 
     def request_handler(self, req, req_body):
         self.logger.info('hello world from request_handler! Req: "%s"' % req.path)
+        self.logger.info("My self.proxy is: %s" % str(self.proxy))
 
     def response_handler(self, req, req_body, res, res_body):
         self.logger.info('hello world from response_handler! Req: "%s"' % req.path)

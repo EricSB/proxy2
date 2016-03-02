@@ -105,6 +105,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         self.options = options
         self.plugins = plugins.get_plugins()
 
+        for plugin_name in self.plugins:
+            instance = self.plugins[plugin_name]
+            setattr(instance, 'proxy', self)
+
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def log_error(self, format, *args):
@@ -196,7 +200,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 req.path = "http://%s%s" % (req.headers['Host'], req.path)
 
 
-        (logger.dbg if self.options['trace'] else logger.info)('Request: "%s"' % req.path)
+        (logger.dbg if self.options['trace'] else logger.info)('Req: "%s"' % req.path)
 
         req_body_modified = self.request_handler(req, req_body)
         if req_body_modified is not None:
@@ -390,10 +394,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             try:
                 handler = getattr(instance, 'request_handler')
                 logger.dbg("Calling `request_handler' from plugin %s" % plugin_name)
-                handler(req, req_body)
+                req_body = handler(req, req_body)
             except AttributeError as e:
-                logger.dbg('Plugin "%s" does not implement `request_handler\'')
-                pass
+                logger.dbg('Plugin "%s" does not implement `request_handler\'. Error: "%s"' 
+                            % (plugin_name, e))
+
+        logger.dbg('Finished calling request_handlers.')
+        return req_body
 
 
     def response_handler(self, req, req_body, res, res_body):
@@ -406,16 +413,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 handler = getattr(instance, 'response_handler')
                 logger.dbg("Calling `response_handler' from plugin %s" % plugin_name)
                 res_body_current = handler(req, req_body, res, res_body_current)
-                altered = (res_body_current != res_body)
-                if altered:
-                    logger.dbg('Plugin has altered the response.')
             except AttributeError as e:
-                logger.dbg('Plugin "%s" does not implement `response_handler\'')
-                pass
+                logger.dbg('Plugin "%s" does not implement `response_handler\'. Error: "%s"'
+                            % (plugin_name, e))
 
-        if not altered:
-            return None
-
+        logger.dbg('Finished calling response_handlers.')
         return res_body_current
 
 

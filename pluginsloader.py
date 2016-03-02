@@ -32,16 +32,27 @@ class PluginsLoader:
     # Following function parses input plugin path with parameters and decomposes
     # them to extract plugin's arguments along with it's path.
     # For instance, having such string:
-    #   -p "plugins/my_plugin.py",argument1="test",argument2,argument3=test2
+    #   -p "plugins/my_plugin.py",argument1="test",argument2,argument3=test2,argument3=test3
     #
     # It will return:
-    #   {'path':'plugins/my_plugin.py', 'argument1':'t,e,s,t', 'argument2':'', 'argument3':'test2'}
+    #   {'path':'plugins/my_plugin.py', 'argument1':'test', 
+    #       'argument2':'', 'argument3':['test2','test3']}
     #
     @staticmethod
     def decompose_path(p):
         decomposed = {}
         f = StringIO.StringIO(p)
         rows = list(csv.reader(f, quoting=csv.QUOTE_ALL, skipinitialspace=True))
+
+        def append(d, k, v):
+            if k in d:
+                e = d[k]
+                if type(e) == type([]):
+                    d[k].append(v)
+                elif type(e) == type(''):
+                    d[k] = [e, v]
+            else:
+                d[k] = v
 
         for i in range(len(rows[0])):
             row = rows[0][i]
@@ -50,10 +61,10 @@ class PluginsLoader:
                 continue
 
             if '=' in row:
-                s = row.split('=')
-                decomposed[s[0]] = s[1].replace('"', '')
+                pos = row.find('=')
+                append(decomposed, row[:pos], row[pos+1:])
             else:
-                decomposed[row] = ''
+                append(decomposed, row, '')
 
         return decomposed
 

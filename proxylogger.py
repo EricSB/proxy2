@@ -79,7 +79,8 @@ class ProxyLogger:
     # for dumping packets, headers, metadata and longer technical output.
     def trace(self, txt, **kwargs):
         if self.options['trace']:   
-            kwargs['noprefix'] = True
+            if 'noprefix' not in kwargs:
+                kwargs['noprefix'] = True
             ProxyLogger.out(txt, self.options['log'], 'trace', **kwargs)
 
 
