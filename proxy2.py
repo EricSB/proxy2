@@ -456,11 +456,10 @@ def main():
 
         ProxyRequestHandler.protocol_version = "HTTP/1.1"
         server_address = (options['hostname'], options['port'])
-        logger.info('Serving http proxy on: %s' % str(server_address))
         httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
 
         sa = httpd.socket.getsockname()
-        s = sa[0] if not sa[0] else '127.0.0.1'
+        s = sa[0] if sa[0] else '127.0.0.1'
         logger.info("Serving HTTP Proxy on: " + s + ", port: " + str(sa[1]) + "...")
 
         httpd.serve_forever()
