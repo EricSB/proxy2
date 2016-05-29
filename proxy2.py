@@ -48,7 +48,7 @@ from HTMLParser import HTMLParser
 # Global options dictonary, that will get modified after parsing 
 # program arguments. Below state represents default values.
 options = {
-    'hostname': 'localhost',
+    'hostname': '0.0.0.0',
     'port': 8080,
     'debug': True,                  # Print's out debuging informations
     'trace': True,                  # Displays packets contents
