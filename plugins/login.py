@@ -126,7 +126,7 @@ class ProxyHandler:
 
         hdrs = self.get_headers(req)
         verify = self.params['url'] + self.params['verify']
-        self.logger.dbg(SCRIPT + ": Requesting for verify url: '%s'." % verify)
+        self.logger.dbg(SCRIPT + ": Verifying url: '%s'." % verify)
 
         # TODO: Add path, domain, httponly/secure, and more of such attributes.
         cook = ''

@@ -77,7 +77,7 @@ sslintercept = None
 
 # Asynchronously serving HTTP server class.
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
-    address_family = socket.AF_INET6
+    address_family = socket.AF_INET
 
     # ThreadMixIn, Should the server wait for thread termination?
     # If True, python will exist despite running server threads.
@@ -161,6 +161,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         try:
             s = socket.create_connection(address, timeout=self.options['timeout'])
         except Exception as e:
+            logger.dbg('Error during socket.create_connection at connect_relay: "%s"' % e, color=logger.colors_map['red'])
             self.send_error(502)
             return
 
@@ -227,6 +228,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
+            logger.dbg('Error during HTTP/S connection and request at do_GET: "%s"' % e, color=logger.colors_map['red'])
             self.send_error(502)
             return
 
@@ -396,8 +398,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 req_body = handler(req, req_body)
             
             except AttributeError as e:
-                ProxyLogger.fatal_error('Plugin "%s" does not implement `request_handler\'.'
-                            % plugin_name, e)
+                ProxyLogger.fatal_error('Plugin "%s" does not implement `request_handler\'.' % plugin_name, e)
 
         logger.dbg('Finished calling request_handlers.')
         return req_body
@@ -415,8 +416,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 res_body_current = handler(req, req_body, res, res_body_current)
             
             except AttributeError as e:
-                ProxyLogger.fatal_error('Plugin "%s" does not implement `response_handler\'.'
-                            % plugin_name, e)
+                ProxyLogger.fatal_error('Plugin "%s" does not implement `response_handler\'.' % plugin_name, e)
 
         logger.dbg('Finished calling response_handlers.')
         return res_body_current
@@ -456,6 +456,7 @@ def main():
 
         ProxyRequestHandler.protocol_version = "HTTP/1.1"
         server_address = (options['hostname'], options['port'])
+        logger.info('Serving http proxy on: %s' % str(server_address))
         httpd = ThreadingHTTPServer(server_address, ProxyRequestHandler)
 
         sa = httpd.socket.getsockname()
